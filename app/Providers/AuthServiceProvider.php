@@ -25,6 +25,9 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        //
+        Gate::define('alter-post', function($user, $post)
+        {
+            return $user->id == $post->user_id;
+        });
     }
 }

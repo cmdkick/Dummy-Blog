@@ -2,25 +2,28 @@
 
 namespace app;
 
-class Post
+use Illuminate\Database\Eloquent\Model;
+
+class Post extends Model
 {
-    private $id;
     private $title;
     private $content;
     private $linkToImage;
 
-    function __construct(int $id = 0, string $title, string $content, string $linkToImage) 
+    protected $fillable = ['title', 'content', 'linkToImage'];
+
+    public function user()
     {
-        $this->id = $id;
-        $this->title = $title;
-        $this->content = $content;
-        $this->linkToImage = $linkToImage;
-        $this->isDeleted = false;
+        return $this->belongsTo('App\User');
     }
 
-    public function getPost() 
+    public function likes()
     {
-        return ['id' => $this->id, 'title' => $this->title,
-                'content' => $this->content, 'linktoimage' => $this->linkToImage];
+        return $this->hasMany('App\Like');
+    }
+
+    public function tags()
+    {
+        return $this->belongsToMany('App\Tag')->withTimestamps();
     }
 }

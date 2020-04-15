@@ -4,98 +4,88 @@ namespace App\Http\Controllers;
 
 use App\Post;
 use App\Blog;
+use App\Tag;
+use Auth;
+use Gate;
+
 use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
     public function createPost(Request $request) 
     {
+        $user = Auth::user();
         $this->validate($request, [
             'title' => 'min:1',
             'image' => 'ulr',
             'image' => 'ends_with:.jpg,.jpeg,.png,.bmp,.gif,.svg'
         ]);
 
-        $post = new Post(
-                        (@count($request->session()->get('posts')) + 1),
-                        $request->input('title'),
-                        $request->input('content'), 
-                        $request->input('image'));
-        
-        $request->session()->push('posts', $post->getPost());
-        return redirect()->route('admin')->with('info', 'Post created with title: ' . $post->getPost()['title']);
+        $post = new Post();
+        $post->title =  $request->input('title');
+        $post->content = $request->input('content');
+        $post->linkToImage = $request->input('image');
+        $user->posts()->save($post);
+        $post->tags()->attach($request->input('tags'));
+
+        return redirect()->route('admin')->with('info', 'Post created with title: ' . $post->title);
     }
 
-    public function generateAdminPanel(Request $request) 
+    public function generateAdminPanel() 
     {
-        $blog = new Blog($request->session()->get('posts'));
-        return view('admin.view', ['blog' => $blog->getBlog()]);
+        $blog = Post::all();
+        $tags = Tag::all();
+        return view('admin.view', ['blog' => $blog, 'tags' => $tags]);
     }
 
-    public function deletePost(Request $request, $id) 
+    public function deletePost($id) 
     {
-        $deletedTitle;
-        $blog = $request->session()->get('posts');
-        $request->session()->forget('posts');
+        $post = Post::find($id);
 
-        foreach ($blog as $key => $post) 
-        {
-            if ($post['id'] == $id)
-            {
-                unset($blog[$id]);
-                $deletedTitle = $post['title'];
-            }
-            else 
-            {
-                $request->session()->push('posts', $post);
-            }
+        if (Gate::denies('alter-post', $post)) {
+            return redirect()->back();
         }
 
-        $blog = new Blog($request->session()->get('posts'));
+        $deletedTitle = $post->title;
+        $post->likes()->delete();
+        $post->tags()->detach();
+        $post->delete();
         
-        return redirect()->route('admin', ['blog' => $blog->getBlog()])->with('info', 'Post with title "'. $deletedTitle . '" deleted');
+        return redirect()->route('admin')->with('info', 'Post with title "'. $deletedTitle . '" deleted');
     }
 
-    public function generateEditingPage(Request $request, $id)
+    public function generateEditingPage($id)
     {
-        foreach($request->session()->get('posts') as $post) 
-        {
-            if ($post['id'] == $id)
-            {
-                return view('admin.edit', ['post' => $post]);
-            }
+        $post = Post::find($id);
+
+        if (Gate::denies('alter-post', $post)) {
+            return redirect()->back();
         }
 
-        return redirect()->route('admin');
+        $tags = Tag::all();
+        return view('admin.edit', ['post' => $post, 'tags' => $tags]);
     }
 
     public function editPost(Request $request, $id)
     {
-        $editedTitle;
         $this->validate($request, [
             'title' => 'min:1',
             'image' => 'ulr',
             'image' => 'ends_with:.jpg,.jpeg,.png,.bmp,.gif,.svg'
         ]);
+        
+        $post = Post::find($id);
 
-        $blog = $request->session()->get('posts');
-
-        $request->session()->forget('posts');
-
-        foreach ($blog as $key => $post) 
-        {
-            if ($post['id'] == $id)
-            {
-                $post['title'] = $request->input('title');
-                $post['content'] = $request->input('content');
-                $post['linktoimage'] = $request->input('image');
-
-                $editedTitle = $post['title'];
-            }
-            $request->session()->push('posts', $post);
+        if (Gate::denies('alter-post', $post)) {
+            return redirect()->back();
         }
 
-        $blog = new Blog($request->session()->get('posts'));
-        return redirect()->route('admin', ['blog' => $blog->getBlog()])->with('info', 'Post with title "'. $editedTitle . '" edited');
+        $post->title = $request->input('title');
+        $post->content = $request->input('content');
+        $post->linkToImage = $request->input('image');
+        $post->save();
+        $post->tags()->sync($request->input('tags'));
+
+        return redirect()->route('admin')->with('info', 'Post edited');
     }
 }

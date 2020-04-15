@@ -1,4 +1,4 @@
-@extends('layouts.master')
+@extends('layouts.app')
 
 @section('content')
 
@@ -26,6 +26,12 @@
         <label>Link to image</label>
         <input type="text" class="form-control" name="image" placeholder="e.g: https://www.website.com/picture.jpg">
       </div>
+      @foreach ($tags as $tag)
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" name="tags[]" value="{{ $tag->id }}" id="{{ $tag->id }}">
+        <label class="form-check-label" for="{{ $tag->id }}">{{ $tag->name }}</label>
+      </div>
+      @endforeach
       {{ csrf_field() }}
       <button type="submit" class="btn btn-primary">Create post</button>
     </form>
@@ -35,27 +41,29 @@
     @foreach ($blog as $post)
         <div class="container">
             <div class="row">
-              <div class="col-md-7">
-                <a href="#">
-                  <img class="img-fluid rounded mb-3 mb-md-0" src="{{ $post['linktoimage'] }}" alt="">
-                </a>
-              </div>
-              <div class="col-md-5">
-                <h3>{{ $post['title'] }}</h3>
-                <p>{{ $post['content'] }}</p>
-                <div>
-                  <a class="btn btn-primary" href="{{ route('blog.post', ['id' => $post['id']]) }}">View Post</a>
+                <div class="col-md-7">
+                    <a href="#">
+                        <img class="img-fluid rounded mb-3 mb-md-0" src="{{ $post->linkToImage }}" alt="">
+                    </a>
                 </div>
-                <div>
-                  <a class="btn btn-warning" href="{{ route('admin.edit', ['id' => $post['id']]) }}">Edit Post</a>
+                <div class="col-md-5">
+                    <h3>{{ $post->title }}</h3>
+                    <p>{{ $post->content }}</p>
+                    <div>
+                        <a class="btn btn-primary" href="{{ route('blog.post', ['id' => $post->id]) }}">View Post</a>
+                    </div>
+                    @if(!Gate::denies('alter-post', $post))
+                    <div>
+                        <a class="btn btn-warning" href="{{ route('admin.edit', ['id' => $post->id]) }}">Edit Post</a>
+                    </div>
+                    <div>
+                        <form method="POST" action="{{ route('admin.delete', ['id' => $post->id]) }}">
+                            {{ csrf_field() }}
+                            <button class="btn btn-danger" type="submit">Delete Post</button>
+                        </form>
+                    </div>
+                    @endif
                 </div>
-                <div>
-                  <form method="POST" action="{{ route('admin.delete', ['id' => $post['id']]) }}">
-                    {{ csrf_field() }}
-                    <button class="btn btn-danger" type="submit">Delete Post</button>
-                  </form>
-                </div>
-              </div>
             </div>
         </div>
     @endforeach

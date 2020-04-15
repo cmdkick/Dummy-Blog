@@ -21,9 +21,11 @@ Route::group(['prefix' => 'blog'], function() {
     Route::get('', 'BlogController@getBlog')->name('blog');
 
     Route::get('post/{id}', 'PostController@getPost')->name('blog.post');
+
+    Route::post('post/{id}/like', 'PostController@likePost')->name('blog.post.like');
 });
 
-Route::group(['prefix' => 'admin'], function() {
+Route::group(['prefix' => 'admin', 'middleware' => 'auth'], function() {
     Route::get('', 'AdminController@generateAdminPanel')->name('admin');
     
     Route::post('', 'AdminController@createPost')->name('admin.create');
@@ -35,3 +37,5 @@ Route::group(['prefix' => 'admin'], function() {
     Route::post('edit/{id}', 'AdminController@editPost')->name('admin.edit');
 
 });
+
+Auth::routes();
